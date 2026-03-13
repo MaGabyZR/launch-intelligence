@@ -1,0 +1,112 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/client"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Platform {
+  X
+  LINKEDIN
+}
+
+enum DraftStatus {
+  DRAFT
+  APPROVED
+  SENT
+  RESPONDED
+}
+
+enum RoundType {
+  Pre_Seed  @map("Pre-Seed")
+  Seed
+  Series_A  @map("Series A")
+  Series_B  @map("Series B")
+  Series_C  @map("Series C+")
+  Grant
+  Unknown
+}
+
+model Company {
+  id             String    @id @default(uuid())
+  domain         String    @unique
+  name           String
+  description    String    @default("")
+  logoUrl        String?   @map("logo_url")
+  ycBatch        String?   @map("yc_batch")
+  totalRaised    Int       @default(0) @map("total_raised")
+  lastRoundType  RoundType? @map("last_round_type")
+  lastRoundDate  String?   @map("last_round_date")
+  leadInvestors  String[]  @map("lead_investors")
+
+  // Contact enrichment fields
+  contactEmail     String?   @map("contact_email")
+  contactPhone     String?   @map("contact_phone")
+  founderLinkedin  String?   @map("founder_linkedin")
+  founderX         String?   @map("founder_x")
+  // Stored as JSON: { email, phone, linkedin, x } each "High"|"Medium"|"Low"
+  contactConfidence Json?    @map("contact_confidence")
+  enrichedAt       DateTime? @map("enriched_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  launches Launch[]
+  drafts   Draft[]
+
+  @@map("companies")
+}
+
+model Launch {
+  id           String   @id @default(uuid())
+  postId       String   @unique @map("post_id")
+  companyId    String   @map("company_id")
+  platform     Platform
+  postUrl      String   @map("post_url")
+  postText     String   @default("") @map("post_text")
+  authorHandle String   @default("") @map("author_handle")
+  postedAt     DateTime @map("posted_at")
+
+  likes       Int   @default(0)
+  shares      Int   @default(0)
+  comments    Int   @default(0)
+  impressions Int   @default(0)
+
+  engagementScore  Float    @default(0) @map("engagement_score")
+  dmDraftId        String?  @map("dm_draft_id")
+  metricsUpdatedAt DateTime @default(now()) @map("metrics_updated_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  draft   Draft?  @relation("LaunchDraft")
+
+  @@index([engagementScore])
+  @@index([postedAt])
+  @@index([companyId])
+  @@map("launches")
+}
+
+model Draft {
+  id        String      @id @default(uuid())
+  companyId String      @map("company_id")
+  launchId  String      @unique @map("launch_id")
+  platform  Platform
+  draftText String      @map("draft_text")
+  editedText String?    @map("edited_text")
+  status    DraftStatus @default(DRAFT)
+
+  generatedAt  DateTime  @default(now()) @map("generated_at")
+  sentAt       DateTime? @map("sent_at")
+  respondedAt  DateTime? @map("responded_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  launch  Launch  @relation("LaunchDraft", fields: [launchId], references: [id])
+
+  @@index([status])
+  @@map("drafts")
+}

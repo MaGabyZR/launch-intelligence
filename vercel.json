@@ -1,0 +1,50 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "functions": {
+    "api/launches/index.ts":           { "maxDuration": 10 },
+    "api/stats/index.ts":              { "maxDuration": 10 },
+    "api/health/index.ts":             { "maxDuration": 10 },
+    "api/ingest/index.ts":             { "maxDuration": 30 },
+    "api/export/index.ts":             { "maxDuration": 30 },
+    "api/drafts/index.ts":             { "maxDuration": 10 },
+    "api/drafts/[id]/index.ts":        { "maxDuration": 10 },
+    "api/drafts/[id]/send.ts":         { "maxDuration": 10 },
+    "api/companies/[domain]/contact.ts": { "maxDuration": 30 },
+    "api/companies/[domain]/funding.ts": { "maxDuration": 30 },
+    "api/cron/refresh-metrics.ts":     { "maxDuration": 60 },
+    "api/cron/generate-drafts.ts":     { "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/refresh-metrics",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/generate-drafts",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
